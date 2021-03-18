@@ -19,6 +19,10 @@ const (
 	dummyFileName = "foo.html"
 )
 
+var (
+	defaultExtensions = []string{".md", ".mdown", ".markdown"}
+)
+
 func (m *MarkdownServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	path := r.URL.Path
 	if !strings.HasPrefix(path, "/") {
@@ -26,10 +30,9 @@ func (m *MarkdownServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		r.URL.Path = path
 	}
 
-	var redirected bool
-redirect:
+	var alreadyRedirected bool
+retryOnce:
 	if strings.HasSuffix(path, "/") {
-		// todo rediect
 		path = path + m.IndexFile
 	}
 
@@ -46,14 +49,13 @@ redirect:
 	}
 
 	if d.IsDir() {
-		if redirected {
+		if alreadyRedirected {
 			notFound(w, r, "entered the void: "+path)
 			return
 		}
-		// todo redirect
-		redirected = true
+		alreadyRedirected = true
 		path = path + "/"
-		goto redirect
+		goto retryOnce
 	}
 
 	c, err := ioutil.ReadAll(f)
@@ -70,8 +72,12 @@ redirect:
 // try index.md, index.mdown -- any extension in the list
 func (m *MarkdownServer) tryFiles(base string) http.File {
 	files := []string{base}
-	for _, ext := range m.Extensions {
-		files = append(files, base+"."+ext)
+	ext := m.Extensions
+	if ext == nil {
+		ext = defaultExtensions
+	}
+	for _, e := range ext {
+		files = append(files, base+"."+e)
 	}
 
 	for _, filename := range files {

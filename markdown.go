@@ -2,8 +2,9 @@ package markdown_server
 
 import (
 	"bytes"
-	"github.com/gomarkdown/markdown"
 	"io"
+
+	"github.com/gomarkdown/markdown"
 )
 
 func renderMarkdown(input []byte) io.ReadSeeker {
